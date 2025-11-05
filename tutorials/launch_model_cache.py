@@ -10,12 +10,12 @@ def load_model(device, repo_id = 'odunola/vibevoice_vae_weights'):
     cache = StreamingCache()
     config = AcousticTokenizerConfig()
     model = AcousticTokenizerModel(config).to(device)
-    # path = hf_hub_download(
-    #     repo_id = repo_id,
-    #     filename = 'acoustic.safetensors'
-    # )
-    # weights = load_file(path, device = device)
-    # model.load_state_dict(weights)
+    path = hf_hub_download(
+        repo_id = repo_id,
+        filename = 'acoustic.safetensors'
+    )
+    weights = load_file(path, device = device)
+    model.load_state_dict(weights)
     return model, cache
 
 
@@ -75,6 +75,8 @@ if __name__ == "__main__":
 
     print(f"Full reconstruction shape: {full_recon.shape}")
     print(f"Streaming reconstruction shape: {streaming_recon.shape}")
+    torchaudio.save('full_recon.wav', full_recon[0], sample_rate = 24000)
+    torchaudio.save('stream_recon.wav', streaming_recon[0], sample_rate=24000)
 
     diff = torch.abs(full_recon - streaming_recon).mean()
     print(f"Mean absolute difference: {diff.item()}")
