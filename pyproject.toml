@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "f5_lora"
+version = "0.1.0"
+description = "LatentLM-Lessons: Ideas around Autoregressive Modelling of continuous data"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Odunola Jenrola" }]
+requires-python = ">=3.8"
+dependencies = [
+    "torch==2.7.0",
+    "torchaudio==2.7.0",
+    "torchdiffeq",
+    "torchcodec",
+    "numpy",
+    "einops",
+    "librosa",
+    "pydub",
+    "vocos",
+    "transformers",
+    "lightning",
+    "soundfile",
+    "tqdm",
+    "ema_pytorch",
+    "wandb",
+    "soundfile",
+    "bitsandbytes",
+    "random_word",
+    "datasets==2.21.0"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "isort", "flake8", "mypy"]
+training = ["wandb",  "datasets"]
+
+[project.urls]
+Source = "https://github.com/odunola499/latent-lm-lessons"
+
+[tool.setuptools]
+packages = ["latentlm"]
+
