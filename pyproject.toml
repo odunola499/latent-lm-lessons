@@ -1,44 +1,32 @@
 [build-system]
-requires = ["setuptools>=45", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
-name = "f5_lora"
+name = "latentlm"
 version = "0.1.0"
-description = "LatentLM-Lessons: Ideas around Autoregressive Modelling of continuous data"
-readme = "README.md"
-license = { text = "MIT" }
+description = "Continious language models"
 authors = [{ name = "Odunola Jenrola" }]
-requires-python = ">=3.8"
+readme = "README.md"
+requires-python = ">=3.9"
+
 dependencies = [
-    "torch==2.7.0",
-    "torchaudio==2.7.0",
-    "torchdiffeq",
-    "torchcodec",
-    "numpy",
-    "einops",
+    "datasets==2.21.0",
     "librosa",
-    "pydub",
-    "vocos",
-    "transformers",
+    "soundfile",
+    "torch==2.7.1",
+    "torchaudio==2.7.1",
     "lightning",
-    "soundfile",
-    "tqdm",
-    "ema_pytorch",
     "wandb",
-    "soundfile",
-    "bitsandbytes",
-    "random_word",
-    "datasets==2.21.0"
+    "einops",
+    "transformers"
 ]
 
-[project.optional-dependencies]
-dev = ["pytest", "black", "isort", "flake8", "mypy"]
-training = ["wandb",  "datasets"]
-
 [project.urls]
-Source = "https://github.com/odunola499/latent-lm-lessons"
+homepage = "https://github.com/odunola499/latent-lm-lessons"
 
-[tool.setuptools]
+[tool.hatch.build.targets.wheel]
 packages = ["latentlm"]
 
+[tool.hatch.build.targets.sdist]
+include = ["latentlm"]
