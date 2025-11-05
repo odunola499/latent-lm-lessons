@@ -14,7 +14,7 @@ class StreamingCache:
         # First pass:collect states and find max length
         for idx in sample_indices.tolist():
             key = (layer_id, idx)
-            if key not in sample_indices.tolist():
+            if key not in self.cache:
                 return None
             state = self.cache[key]
             states.append(state)

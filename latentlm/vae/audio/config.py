@@ -35,7 +35,7 @@ class SemanticTokenizerConfig:
     channels:int = 1
     corpus_normalize:float = 0.0
     causal:bool = True
-    vae_dim:int = 64
+    vae_dim:int = 128
     fix_std:float = 0.5
     std_dist_type:str = 'gaussian'
 

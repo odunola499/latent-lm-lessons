@@ -5,7 +5,7 @@ from torch import nn
 from torch.nn import functional as F
 from functools import partial
 from .conv import ConvLayerNorm, SConv1d, SConvTranspose1d
-from .conv import ConvLayer as Convlayer
+from .conv import Convlayer, StreamingConvlayer
 from .norm import ConvLayerNorm, ConvRMSNorm
 
 
@@ -75,7 +75,7 @@ class Block1D(nn.Module):
             self.gamma = None
             self.ffn_gamma = None
 
-    def forward(self, x):
+    def forward(self, x, cache = None, use_cache = True):
         # mixer
         residual = x
         x = self.norm(x)

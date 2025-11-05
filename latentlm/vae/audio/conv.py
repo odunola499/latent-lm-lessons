@@ -60,7 +60,7 @@ def pad1d(x: torch.Tensor, paddings: Tuple[int, int], mode: str = 'zero', value:
 def unpad1d(x: torch.Tensor, paddings: Tuple[int, int]):
     """Remove padding from x, handling properly zero padding. Only for 1d!"""
     padding_left, padding_right = paddings
-    assert padding_left >= 0 and padding_right >= 0, (padding_left, padding_right)
+    assert padding_left >= 0 and padding_right >= 0, f"{padding_left, padding_right} is invalid padding"
     assert (padding_left + padding_right) <= x.shape[-1]
     end = x.shape[-1] - padding_right
     return x[..., padding_left: end]
@@ -116,7 +116,7 @@ class SConv1d(nn.Module):
             groups:int = 1,
             bias:bool = True,
             causal:bool = False,
-            norm:str = 'norm',
+            norm:str = 'none',
             norm_kwargs=None,
             pad_mode:str = 'reflect'
     ):
@@ -416,7 +416,38 @@ class SConvTranspose1d(nn.Module):
 
         return y
 
-class ConvLayer(nn.Module):
+class Convlayer(nn.Module):
+    def __init__(
+            self,
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride = 1,
+            dilation = 1,
+            groups = 1,
+            bias = True,
+            pad_mode = 'zeros',
+            norm = 'weight_norm',
+            causal= True
+    ):
+        super().__init__()
+        self.conv = SConv1d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride = stride,
+            dilation = dilation,
+            groups = groups,
+            bias = bias,
+            pad_mode = pad_mode,
+            norm = norm,
+            causal = causal
+        )
+
+    def forward(self, x):
+        return self.conv(x)
+
+class StreamingConvlayer(nn.Module):
     def __init__(
             self,
             in_channels,

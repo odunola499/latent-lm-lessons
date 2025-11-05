@@ -18,7 +18,7 @@ for file in shard_files:
     print(f"Downloading {file}")
     hf_hub_download(
         repo_id = repo_id,
-        filename = file,
+        filename = file.name,
         local_dir = local_dir,
         local_dir_use_symlinks=False
     )
