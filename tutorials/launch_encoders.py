@@ -20,8 +20,9 @@ print(f"Num of acoustic params: {sum(acoustic_params)}")
 tensor = torch.randn((1,1,24000), device = device)
 print(tensor.shape)
 
-output = semantic_model(tensor, debug = True)
-print(output)
+# output = semantic_model(tensor, debug = True)
+# print(output)
 
-output = acoustic_model(tensor, debug = True)
-print(output)
+reconstructed, sampled_latents = acoustic_model(tensor, debug = True)
+print(reconstructed.shape)
+print(sampled_latents.shape)
