@@ -475,5 +475,7 @@ class StreamingConvlayer(nn.Module):
             causal = causal
         )
 
-    def forward(self, x):
-        return self.conv(x)
+    def forward(self, x, cache:StreamingCache,
+                sample_indices = None,
+                use_cache:bool = True):
+        return self.conv(x, cache, sample_indices, use_cache = use_cache)

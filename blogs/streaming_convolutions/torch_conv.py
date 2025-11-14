@@ -108,7 +108,7 @@ class CausalConvModule(nn.Module):
 
     def get_receptive_field(self):
         stride_product = 1
-        receptive_field = 0
+        receptive_field = 1
         for kernel_size, dilation, stride in zip(self.kernel_sizes, self.dilations, self.strides):
             receptive_field += (kernel_size - 1) * dilation * stride_product
             stride_product *= stride
