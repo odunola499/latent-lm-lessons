@@ -1,14 +1,16 @@
 from queue import Queue
 from threading import Thread
 from latentlm.vae.audio.model import AcousticTokenizerModel, AcousticTokenizerConfig
+from latentlm.vae.audio.model import SemanticTokenizerModel, SemanticTokenizerConfig
 from latentlm.vae.audio.cache import StreamingCache
 import torchaudio
 from torchaudio.io import StreamWriter
 from huggingface_hub import hf_hub_download
 from safetensors.torch import load_file
 import torch
-import math
 import time
+from typing import Union
+import math
 
 
 def pad_to_multiple(x: torch.Tensor, multiple: int = 3200) -> torch.Tensor:
@@ -31,13 +33,26 @@ def compute_receptive_field(kernel_sizes, dilation, strides):
     return receptive_field
 
 
-def load_model(device, repo_id='odunola/vibevoice_vae_weights'):
+def load_acoustic_model(device, repo_id='odunola/vibevoice_vae_weights'):
     cache = StreamingCache()
     config = AcousticTokenizerConfig()
     model = AcousticTokenizerModel(config).to(device)
     path = hf_hub_download(
         repo_id=repo_id,
         filename='acoustic.safetensors'
+    )
+    weights = load_file(path)
+    model.load_state_dict(weights)
+    return model, cache
+
+
+def load_semantic_model(device, repo_id='odunola/vibevoice_vae_weights'):
+    cache = StreamingCache()
+    config = SemanticTokenizerConfig()
+    model = SemanticTokenizerModel(config).to(device)
+    path = hf_hub_download(
+        repo_id=repo_id,
+        filename='semantic.safetensors'
     )
     weights = load_file(path)
     model.load_state_dict(weights)
@@ -64,7 +79,7 @@ def producer(input_queue: Queue, file_path: str, chunk_size=6000):
 def consumer(
         input_queue: Queue,
         output_queue: Queue,
-        model: AcousticTokenizerModel,
+        model: SemanticTokenizerModel,
         cache: StreamingCache,
         sample_indices: torch.Tensor,
         device
@@ -74,46 +89,30 @@ def consumer(
         if chunk is None:
             output_queue.put(None)
             break
-        print(f"Input to model: {chunk.shape}")
-        recon_chunk, _ = model(
-            chunk.to(device),
-            cache=cache,
-            sample_indices=sample_indices,
-            use_cache=True,
-            debug=False
+        print(f"input shape: {chunk.shape}")
+        _, latents = model(
+            chunk.to(device), cache=cache, sample_indices=sample_indices, use_cache=True
         )
-        output_queue.put(recon_chunk)
-
-
-def save_to_disk(stream_output_path: str, output_queue: Queue):
-    writer = StreamWriter(stream_output_path)
-    writer.add_audio_stream(sample_rate=24000, num_channels=1)
-    writer.open()
-
-    while True:
-        chunk = output_queue.get()
-        if chunk is None:
-            print("Reached end")
-            writer.close()
-            break
-        chunk = chunk[0].detach().cpu()
-        chunk = chunk.squeeze(0).unsqueeze(-1)
-        writer.write_audio_chunk(0, chunk)
+        print(f"Output latent shape {latents.shape}")
+        output_queue.put(latents)
 
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    strides = [1, 2, 2, 4, 5, 5, 8]
+    kernel_sizes = [7] + [i * 2 for i in strides[1:]]
+    dilation = 1
+
+    receptive_field = compute_receptive_field(kernel_sizes, dilation, strides=strides)
 
     input_queue = Queue()
     output_queue = Queue()
-    model, cache = load_model(device)
+    model, cache = load_semantic_model(device)
     sample_indices = torch.tensor([0], device=device)
 
     file_path = 'audio.wav'
-    full_output_path = 'offline_recon.wav'
-    stream_output_path = 'stream_recon.wav'
-
-    chunk_size = 3200
+    chunk_size = 6400
+    print(F"Receptive field: {receptive_field}, Chunk_size: {chunk_size}")
 
     producer_thread = Thread(target=producer, args=(
         input_queue, file_path, chunk_size)
@@ -121,25 +120,33 @@ if __name__ == "__main__":
     consumer_thread = Thread(target=consumer, args=(
         input_queue, output_queue, model, cache, sample_indices, device)
                              )
-    save_thread = Thread(target=save_to_disk, args=(stream_output_path, output_queue))
-
     producer_thread.start()
     consumer_thread.start()
-    save_thread.start()
 
     producer_thread.join()
     consumer_thread.join()
-    save_thread.join()
 
-    print('Finished Streaming inference')
+    collected = []
+
+    while True:
+        item = output_queue.get()
+        if item is None:
+            break
+        collected.append(item.detach())
+
+    stream_results = torch.concat(collected, dim=1)
+
+    streamed_latents = torch.concat(collected, dim=1)
+    print("Streaming complete")
 
     audio, sample_rate = torchaudio.load(file_path)
     audio = torchaudio.functional.resample(audio, orig_freq=sample_rate, new_freq=24000)
     audio = audio.unsqueeze(0).to(device)
     audio = pad_to_multiple(audio, chunk_size)
     cache = StreamingCache()
-    recon, _ = model(audio)
-    torchaudio.save(full_output_path, recon[0].detach().cpu(), sample_rate=24000)
+    _, latents = model(audio)
+    print('offline complete')
 
-    print('Finished Offline inference')
-
+    print(f'streamed latents: {streamed_latents.shape}')
+    print(f"offline latents: {latents.shape}")
+    print(torch.abs(streamed_latents - latents).mean())
